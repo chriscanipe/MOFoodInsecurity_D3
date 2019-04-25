@@ -18,17 +18,23 @@ Promise.all([
 
 function init(data) {
 
-    console.log(data);
+  console.log(data);
 
     chart.county = data[0];
     chart.foodinsecurity = data[1];
     chart.lookup = {};
 
+    //Chris, I'm not sure where the "d.fips" thing is coming from in this next chart.lookup bracket. I copied it from your albers code but don't know its purpose.
+
+    chart.foodinsecurity.forEach(d => {
+      chart.lookup[d["FIPS code"]] = +d["Food Insecurity Rate"];
+    })
+
+    console.log(chart.foodinsecurity)
 
     //Append our elements to the page. This only happens on load.
     appendElements();
 
-    console.log();
 
     //Update positions and styles for everything on the page
     //whenever we update the page (on re-size, for example).
@@ -69,25 +75,17 @@ function setDimensions() {
 
 function setScales() {
 
-    //chart.projection = d3.geoAlbersUsa();
 
-    //Missouri Central State Plane Projection
-    //Taken from here:
-    //https://github.com/veltman/d3-stateplane#nad83--missouri-central-epsg26997
-    //NOTE: I've added a `fitSize` definition, which conveniently makes the map fil your screen size.
-    //Documentation for `fitSize` is here: https://github.com/d3/d3-geo#projection_fitSize
     chart.projection = d3.geoTransverseMercator()
         .rotate([92 + 30 / 60, -35 - 50 / 60])
         .fitSize([chart.width, chart.height], chart.county);
 
-
-
     chart.path = d3.geoPath()
         .projection(chart.projection);
 
-    let domain = d3.extent(chart.foodinsecurity, d => {
-        return +d["Food Insecurity Rate"];
-    })
+    let domain = d3.extent(chart.foodinsecurity, d=> {
+      return +d["Food Insecurity Rate"];
+    })  
 
     chart.color = d3.scaleQuantize(domain, d3.schemeBlues[9])
 
@@ -106,8 +104,6 @@ function appendElements() {
     //The plot is where the charting action happens.
     chart.plot = chart.svg.append("g").attr("class", "chart-g");
 
-    //Make sure to add your elements to the `plot` group
-    //so that your chart appears with offset margins
     chart.countyMap = chart.plot.selectAll("path.county")
         .data(chart.county.features).enter()
         .append("path")
@@ -126,12 +122,25 @@ function updateElements() {
     chart.plot.attr("transform", `translate(${chart.margin.left},${chart.margin.top})`);
 
     chart.countyMap.attr("d", chart.path)
-        .style("fill", d => {
-            //WRITE YOUR DATA ACCESSING LOGIC HERE
-            return 'lightgreen';
-            //return chart.color(median);
+      .style("fill", d=> {
 
-    })
+        let shortfips = d.properties.countyfips;
+        let fips = `${"29"}${shortfips}`;
+        let rate = chart.lookup[fips];
+
+        return chart.color(rate);
+
+      })
+        //return "lightblue";
+
+        // let pop = d.properties.population;
+
+        // if (pop >= 15000) {
+        //  return "blue";
+        // }  else {
+        //  return "lightblue";
+        }
+
+      
 
 
-}
